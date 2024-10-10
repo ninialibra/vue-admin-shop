@@ -6,6 +6,7 @@
       <label for="email" class="block text-gray-600">Correo</label>
       <input
         v-model="myForm.email"
+        ref="emailInputRef"
         type="text"
         id="email"
         name="email"
@@ -18,6 +19,7 @@
       <label for="password" class="block text-gray-600">Password</label>
       <input
         v-model="myForm.password"
+        ref="passwordInputRef"
         type="password"
         id="password"
         name="password"
@@ -50,17 +52,19 @@
   </form>
   <!-- Sign up  Link -->
   <div class="mt-6 text-blue-500 text-center">
-    <RouterLink :to="{ name: 'register' }" class="hover:underline">Sign up Here</RouterLink>
+    <RouterLink :to="{ name: 'register' }" class="hover:underline">Crear cuenta aquí</RouterLink>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { reactive } from 'vue';
-import { useRouter } from 'vue-router';
+import { reactive, ref, watchEffect } from 'vue';
 import { useAuthStore } from '../stores/auth.store';
+import { useToast } from 'vue-toastification';
 
-const router = useRouter();
 const authStore = useAuthStore();
+const toast = useToast();
+const emailInputRef = ref<HTMLInputElement | null>(null);
+const passwordInputRef = ref<HTMLInputElement | null>(null);
 
 const myForm = reactive({
   email: '',
@@ -69,8 +73,33 @@ const myForm = reactive({
 });
 
 const onLogin = async () => {
+  if (myForm.email === '') {
+    return emailInputRef.value?.focus();
+  }
+
+  if (myForm.password === '') {
+    return passwordInputRef.value?.focus();
+  }
+
+  if (myForm.rememberMe) {
+    localStorage.setItem('email', myForm.email);
+  } else {
+    localStorage.removeItem('email');
+  }
+
   const ok = await authStore.login(myForm.email, myForm.password);
 
-  console.log({ ok });
+  if (ok) return;
+
+  toast.error('Datos de acceso incorrectos.');
 };
+
+watchEffect(() => {
+  const email = localStorage.getItem('email');
+
+  if (email) {
+    myForm.email = email;
+    myForm.rememberMe = true;
+  }
+});
 </script>
