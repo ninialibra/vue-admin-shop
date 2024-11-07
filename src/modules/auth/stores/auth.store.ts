@@ -48,9 +48,12 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
+
     authStatus.value = AuthStatus.Unauthenticated;
     user.value = undefined;
     token.value = '';
+    console.log('Usuario cerrado');
 
     return false;
   };
@@ -81,10 +84,11 @@ export const useAuthStore = defineStore('auth', () => {
     authStatus,
     isChecking: computed(() => authStatus.value === AuthStatus.Checking),
     isAuthenticated: computed(() => authStatus.value === AuthStatus.Authenticated),
-
+    isAdmin: computed(() => user.value?.roles.includes('admin') ?? false),
     username: computed(() => user.value?.fullName),
 
     login,
+    logout,
     register,
     checkAuthStatus,
   };
