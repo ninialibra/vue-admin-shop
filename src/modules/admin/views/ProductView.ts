@@ -1,9 +1,11 @@
 import { getProductById } from '@/modules/products/actions';
 import { useQuery } from '@tanstack/vue-query';
-import { defineComponent, watchEffect } from 'vue';
+import { defineComponent, watch, watchEffect } from 'vue';
 import { useRouter } from 'vue-router';
-import { useForm } from 'vee-validate';
+import { useFieldArray, useForm } from 'vee-validate';
 import * as yup from 'yup';
+import CustomInput from '@/modules/common/components/CustomInput.vue';
+import CustomTextarea from '@/modules/common/components/CustomTextarea.vue';
 
 const validationSchema = yup.object({
   title: yup.string().required(),
@@ -15,6 +17,10 @@ const validationSchema = yup.object({
 });
 
 export default defineComponent({
+  components: {
+    CustomInput,
+    CustomTextarea,
+  },
   props: {
     productId: {
       type: String,
@@ -35,7 +41,7 @@ export default defineComponent({
       retry: false,
     });
 
-    const { values, defineField, errors } = useForm({
+    const { values, defineField, errors, handleSubmit, resetForm, meta } = useForm({
       validationSchema,
     });
 
@@ -46,16 +52,56 @@ export default defineComponent({
     const [stock, stockAttrs] = defineField('stock');
     const [gender, genderAttrs] = defineField('gender');
 
+    const { fields: images } = useFieldArray<string>('images');
+    const { fields: sizes, remove: removeSize, push: pushSize } = useFieldArray<string>('sizes');
+
+    const onSubmit = handleSubmit((value) => {});
+
+    const toggleSize = (size: string) => {
+      const currentSizes = sizes.value.map((s) => s.value);
+      const hasSize = currentSizes.includes(size);
+
+      if (hasSize) {
+        removeSize(currentSizes.indexOf(size));
+      } else {
+        pushSize(size);
+      }
+    };
+
     watchEffect(() => {
       if (isError.value && !isLoading.value) {
         router.replace('/admin/products');
       }
     });
 
+    watch(
+      producto,
+      () => {
+        if (!producto) return;
+
+        resetForm({
+          values: producto.value,
+        });
+      },
+      {
+        deep: true,
+        immediate: true,
+      },
+    );
+
     return {
       values,
       errors,
+      meta,
+      images,
+      sizes,
 
+      onSubmit,
+      toggleSize,
+      hasSize: (size: string) => {
+        const currentSizes = sizes.value.map((s) => s.value);
+        return currentSizes.includes(size);
+      },
       title,
       titleAttrs,
       slug,
