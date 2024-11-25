@@ -1,11 +1,12 @@
-import { getProductById } from '@/modules/products/actions';
-import { useQuery } from '@tanstack/vue-query';
+import { createUpdateProductAction, getProductById } from '@/modules/products/actions';
+import { useMutation, useQuery } from '@tanstack/vue-query';
 import { defineComponent, watch, watchEffect } from 'vue';
 import { useRouter } from 'vue-router';
 import { useFieldArray, useForm } from 'vee-validate';
 import * as yup from 'yup';
 import CustomInput from '@/modules/common/components/CustomInput.vue';
 import CustomTextarea from '@/modules/common/components/CustomTextarea.vue';
+import { useToast } from 'vue-toastification';
 
 const validationSchema = yup.object({
   title: yup.string().required(),
@@ -30,6 +31,7 @@ export default defineComponent({
 
   setup(props) {
     const router = useRouter();
+    const toast = useToast();
 
     const {
       data: producto,
@@ -39,6 +41,15 @@ export default defineComponent({
       queryKey: ['product', props.productId],
       queryFn: () => getProductById(props.productId),
       retry: false,
+    });
+
+    const {
+      mutate,
+      isPending,
+      isSuccess: isUpdateSucess,
+      data: updateProduct,
+    } = useMutation({
+      mutationFn: createUpdateProductAction,
     });
 
     const { values, defineField, errors, handleSubmit, resetForm, meta } = useForm({
@@ -55,7 +66,9 @@ export default defineComponent({
     const { fields: images } = useFieldArray<string>('images');
     const { fields: sizes, remove: removeSize, push: pushSize } = useFieldArray<string>('sizes');
 
-    const onSubmit = handleSubmit((value) => {});
+    const onSubmit = handleSubmit(async (values) => {
+      mutate(values);
+    });
 
     const toggleSize = (size: string) => {
       const currentSizes = sizes.value.map((s) => s.value);
@@ -89,12 +102,25 @@ export default defineComponent({
       },
     );
 
+    watch(isUpdateSucess, (value) => {
+      if (!value) return;
+
+      toast.success('Producto actualizado correctamente');
+
+      // TODO: redireccion cuando se crea
+
+      resetForm({
+        values: updateProduct.value,
+      });
+    });
+
     return {
       values,
       errors,
       meta,
       images,
       sizes,
+      isPending,
 
       onSubmit,
       toggleSize,
