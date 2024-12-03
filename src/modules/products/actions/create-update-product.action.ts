@@ -2,14 +2,18 @@ import { tesloApi } from '@/api/tesloApi';
 import type { Product } from '../interfaces/product.interface';
 
 export const createUpdateProductAction = async (product: Partial<Product>) => {
-  if (product.id && product.id !== '') {
-    return await updateProduct(product);
+  const productId = product.id;
+
+  product = cleanProductForCreateUpdate(product);
+
+  if (productId && productId !== '') {
+    return await updateProduct(productId, product);
   }
 
   return await createProduct(product);
 };
 
-const updateProduct = async (product: Partial<Product>) => {
+const cleanProductForCreateUpdate = (product: Partial<Product>) => {
   const images: string[] =
     product.images?.map((image) => {
       if (image.startsWith('http')) {
@@ -20,11 +24,14 @@ const updateProduct = async (product: Partial<Product>) => {
       return image;
     }) ?? [];
 
-  const productId = product.id;
   delete product.id;
   delete product.user;
   product.images = images;
 
+  return product;
+};
+
+const updateProduct = async (productId: string, product: Partial<Product>) => {
   try {
     const { data } = await tesloApi.patch<Product>(`/products/${productId}`, product);
 
@@ -36,20 +43,6 @@ const updateProduct = async (product: Partial<Product>) => {
 };
 
 const createProduct = async (product: Partial<Product>) => {
-  const images: string[] =
-    product.images?.map((image) => {
-      if (image.startsWith('http')) {
-        const imageName = image.split('/').pop();
-        return imageName ? image : '';
-      }
-
-      return image;
-    }) ?? [];
-
-  delete product.id;
-  delete product.user;
-  product.images = images;
-
   try {
     const { data } = await tesloApi.post<Product>(`/products`, product);
 
@@ -57,5 +50,21 @@ const createProduct = async (product: Partial<Product>) => {
   } catch (error) {
     console.error(error);
     throw new Error('Error create product');
+  }
+};
+
+const uploadImages = async (images: (string | File)[]) => {
+  const imageFile = images[0] as File;
+
+  try {
+    const formData = new FormData();
+    formData.append('file', imageFile);
+
+    const { data } = await tesloApi.post<{ secureUrl: string }>('files/product', formData);
+
+    return data.secureUrl;
+  } catch (error) {
+    console.error(error);
+    throw new Error('Error uploading image');
   }
 };
