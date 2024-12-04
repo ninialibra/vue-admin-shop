@@ -4,6 +4,9 @@ import type { Product } from '../interfaces/product.interface';
 export const createUpdateProductAction = async (product: Partial<Product>) => {
   const productId = product.id;
 
+  const newImages = await uploadImages(product.images ?? []);
+  product.images = newImages;
+
   product = cleanProductForCreateUpdate(product);
 
   if (productId && productId !== '') {
@@ -54,17 +57,24 @@ const createProduct = async (product: Partial<Product>) => {
 };
 
 const uploadImages = async (images: (string | File)[]) => {
-  const imageFile = images[0] as File;
+  const filesToUpload = images.filter((image) => image instanceof File) as File[];
+  const currentImages = images.filter((image) => typeof image === 'string') as string[];
 
-  try {
-    const formData = new FormData();
-    formData.append('file', imageFile);
+  const uploadPromises = filesToUpload.map(async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    const { data } = await tesloApi.post<{ secureUrl: string }>('files/product', formData);
+      const { data } = await tesloApi.post<{ secureUrl: string }>('files/product', formData);
 
-    return data.secureUrl;
-  } catch (error) {
-    console.error(error);
-    throw new Error('Error uploading image');
-  }
+      return data.secureUrl;
+    } catch (error) {
+      console.error(error);
+      throw new Error('Error uploading image');
+    }
+  });
+
+  const uploadedImages = await Promise.all(uploadPromises);
+
+  return [...currentImages, ...uploadedImages];
 };

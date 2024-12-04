@@ -124,18 +124,6 @@
       </div>
     </div>
   </form>
-
-  <div class="grid grid-cols-2">
-    <div class="bg-blue-200">
-      {{ values }}
-    </div>
-    <div class="bg-red-200">
-      {{ errors }}
-    </div>
-    <div class="bg-green-200">
-      {{ meta }}
-    </div>
-  </div>
 </template>
 
 <script src="./ProductView.ts" lang="ts"></script>

@@ -70,7 +70,12 @@ export default defineComponent({
     const imageFiles = ref<File[]>([]);
 
     const onSubmit = handleSubmit(async (values) => {
-      mutate(values);
+      const formValues = {
+        ...values,
+        images: [...values.images, ...imageFiles.value],
+      };
+
+      mutate(formValues);
     });
 
     const toggleSize = (size: string) => {
@@ -127,6 +132,8 @@ export default defineComponent({
       resetForm({
         values: updateProduct.value,
       });
+
+      imageFiles.value = [];
     });
 
     watch(
